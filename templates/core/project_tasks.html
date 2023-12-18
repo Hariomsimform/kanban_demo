@@ -1,0 +1,35 @@
+<!-- project_tasks.html -->
+{% extends 'core/_base.html' %}
+
+{% block content %}
+    <div class="container-fluid">
+        <h2>{{ project.project_name }} - Tasks</h2>
+        <div class="row content">
+            {% for status, tasks in tasks_by_status.items %}
+                <div class="col-sm-3">
+                    <div class="well">
+                        <h3>{{ status }}</h3>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Task Name</th>
+                                    <th>Task Description</th>
+                                    <th>Assigned To</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in tasks %}
+                                    <tr>
+                                        <td><strong>{{ task.task_name }}</strong></td>
+                                        <td>{{ task.task_description }}</td>
+                                        <td>{{ task.assigned_to__username }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}

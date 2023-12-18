@@ -1,0 +1,12 @@
+{% extends 'core/_base.html' %}
+
+{% block content %}
+    <div class="container">
+        <h2>Add Developer to Project</h2>
+        <form method="post" action="{% url 'add_developer' %}" class="needs-validation" novalidate>
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Add Developer</button>
+        </form>
+    </div>
+{% endblock %}

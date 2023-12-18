@@ -1,0 +1,123 @@
+{% extends 'core/_base.html' %} {% load socialaccount %}
+
+{% block content %}
+{% if user.is_authenticated %}
+    <div class="container-fluid">
+        <div class="row content">
+            <div class="col-sm-3 sidenav hidden-xs">
+                <h2>Logo</h2>
+                <ul class="nav nav-pills nav-stacked">
+                    <li class="active"><a href="#section1">Dashboard</a></li>
+                    <li><a href="/tasks/">Tasks</a></li>
+                    <li><a href="/issues/">Issues</a></li>
+                    <li><a href="/projects">Projects</a></li>
+                </ul><br>
+                <ul class="nav nav-pills nav-stacked">
+                    <li class="active"><a href="#section1">Recent Projects</a></li>
+                    {% for project in recent_projects %}
+                        <li><a href="project/{{project.project_id}}/tasks">{{ project.project_name }}</a></li>
+                    {% endfor %}
+                </ul><br>
+            </div>
+            <br>
+            
+            <div class="col-sm-9">
+                <div class="well">
+                    <h4>Actions</h4>
+                    {% if user_details and user_details.first.user_role.role_name == 'Project Manager' or user_details.first.user_role.role_name == 'Scrum Master' %}
+                        <a href="{% url 'create_project' %}" class="btn btn-primary">Create Project</a>
+                        <a href="{% url 'add_developer' %}" class="btn btn-primary">Add Developers in Project</a>
+                    {% endif %}
+                    <a href="{% url 'create_task' %}" class="btn btn-primary">Create Task</a>
+                    <a href="{% url 'create_issue' %}" class="btn btn-primary">Create Issue</a>
+                </div>
+                <div class="row">
+                    {% for task_count in task_counts %}
+                        <div class="col-sm-3">
+                            <a href="tasks/{{ task_count.status__status_name }}/{{ task_count.status__status_id }}">
+                                <div class="well clickable-well">
+                                    <h4>{{ task_count.status__status_name }}</h4>
+                                    <p>{{ task_count.count }}</p>
+                                </div>
+                            </a>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="well">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Task Name</th>
+                                        <th>Project Name</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for task in tasks %}
+                                        <tr>
+                                            <td><strong>{{ task.task_name }}</strong></td>
+                                            <td>{{ task.project__project_name }}</td>
+                                            <td>
+                                                <a href="{% url 'view_task' task.task_id %}" class="btn btn-primary">View Task</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="col-sm-6">
+                        <div class="well">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Issue Name</th>
+                                        <th>Project Name</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for issue in issues %}
+                                        <tr>
+                                            <td><strong>{{ issue.issue_name }}</strong></td>
+                                            <td>{{ issue.project__project_name }}</td>
+                                            <td>
+                                                <a href="{% url 'view_issue' issue.issue_id %}" class="btn btn-primary">View Issue</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                </div>
+                <div class="row">
+                    <div class="col-sm-8">
+                        <div class="well">
+                            <p>Text</p> 
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="well">
+                            <p>Text</p> 
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+<!-- GitHub button starts here -->
+<a href="{% provider_login_url 'github' %}" class="btn btn-secondary">
+    <i class="fa fa-github fa-fw"></i>
+    <span>Login with GitHub</span>
+</a>
+<!-- GitHub button ends here -->
+  {% endif %}
+{% endblock %}

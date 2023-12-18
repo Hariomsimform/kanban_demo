@@ -1,0 +1,46 @@
+{% extends 'core/_base.html' %}
+
+{% block content %}
+<div class="container">
+        {% if projects.exists %}
+        <h2>Create Task</h2>
+        <form method="post" action="{% url 'create_task' %}" class="needs-validation" novalidate>
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="project" class="form-label">Project:</label>
+                <select name="project" class="form-control" required>
+                    <option value="" selected disabled>Select a project</option>
+                    {% for project in projects %}
+                        <option value="{{ project.project_id }}">{{ project.project_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="task_name" class="form-label">Task Name:</label>
+                <input type="text" name="task_name" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="task_description" class="form-label">Task Description:</label>
+                <textarea name="task_description" class="form-control" required></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="assigned_to" class="form-label">Assigned To:</label>
+                <select name="assigned_to" class="form-control" required>
+                    <option value="" selected disabled>Select an option</option>
+                    {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Create Task</button>
+        </form>
+    {% else %}
+        <h2>You are not a part of any project</h2>
+        <p>You cannot create a task as you are not associated with any project.</p>
+    {% endif %}
+    </div>
+{% endblock %}

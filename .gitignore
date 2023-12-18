@@ -1,0 +1,9 @@
+__pycache__/
+.env
+projenv/
+env/
+myenv/
+my_env
+kanban_env/
+*.log
+db.sqlite3

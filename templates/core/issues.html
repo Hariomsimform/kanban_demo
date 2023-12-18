@@ -1,0 +1,38 @@
+{% extends 'core/_base.html' %}
+
+{% block content %}
+    <div class="container-fluid">
+        <div class="row content">
+            <div class="col-sm-9">
+                
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="well">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Issue Name</th>
+                                        <th>Project Name</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for issue in issues %}
+                                        <tr>
+                                            <td><strong>{{ issue.issue_name }}</strong></td>
+                                            <td>{{ issue.project__project_name }}</td>
+                                            <td>
+                                                <a href="{% url 'view_issue' issue.issue_id %}" class="btn btn-primary">View Issue</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

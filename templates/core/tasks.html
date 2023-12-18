@@ -1,0 +1,39 @@
+{% extends 'core/_base.html' %}
+
+{% block content %}
+    <div class="container-fluid">
+        <div class="row content">
+            <div class="col-sm-9">
+                
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="well">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Task Name</th>
+                                        <th>Project Name</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for task in tasks %}
+                                        <tr>
+                                            <td><strong>{{ task.task_name }}</strong></td>
+                                            <td>{{ task.project__project_name }}</td>
+                                            <td>
+                                                <a href="{% url 'view_task' task.task_id %}" class="btn btn-primary">View Task</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,35 @@
+<!-- task_detail.html -->
+{% extends 'core/_base.html' %}
+
+{% block content %}
+  <h2>{{ task.task_name }}</h2>
+  <p>{{ task.task_description }}</p>
+  <p>Assigned to: {{ task.assigned_to }}</p>
+  <p>Status: {{ task.status }}</p>
+
+  <h3>Edit Task</h3>
+  <form method="post" action="/view_task/{{task.task_id}}/">
+    {% csrf_token %}
+    <label for="id_task_name">Task Name:</label>
+    <input type="text" id="id_task_name" name="task_name" value="{{ task.task_name }}" required>
+
+    <label for="id_task_description">Task Description:</label>
+    <textarea id="id_task_description" name="task_description" required>{{ task.task_description }}</textarea>
+
+    <label for="id_assigned_to">Assigned to:</label>
+    <select id="id_assigned_to" name="assigned_to" required>
+      {% for user in users %}
+        <option value="{{ user.id }}" {% if user.id == task.assigned_to.id %}selected{% endif %}>{{ user.username }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="id_status">Status:</label>
+    <select id="id_status" name="status" required>
+      {% for task_status in task_statuses %}
+        <option value="{{ task_status.status_id }}" {% if task_status.status_id == task.status.status_id %}selected{% endif %}>{{ task_status.status_name }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit" class="btn btn-primary">Save changes</button>
+  </form>
+{% endblock %}
