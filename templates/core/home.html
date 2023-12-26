@@ -61,7 +61,13 @@
                                             <td><strong>{{ task.task_name }}</strong></td>
                                             <td>{{ task.project__project_name }}</td>
                                             <td>
-                                                <a href="{% url 'view_task' task.task_id %}" class="btn btn-primary">View Task</a>
+                                                <a href="{% url 'view_task' task.task_id %}" class="btn btn-primary">
+                                                    <i class="fa fa-eye"></i>
+                                                </a>
+                                                <!-- Add a delete button with a Font Awesome trash icon -->
+                                                <a href="{% url 'delete_task' task.task_id %}" class="btn btn-primary">
+                                                    <i class="fa fa-trash"></i>
+                                                </a>
                                             </td>
                                         </tr>
                                     {% endfor %}
@@ -87,7 +93,13 @@
                                             <td><strong>{{ issue.issue_name }}</strong></td>
                                             <td>{{ issue.project__project_name }}</td>
                                             <td>
-                                                <a href="{% url 'view_issue' issue.issue_id %}" class="btn btn-primary">View Issue</a>
+                                                <a href="{% url 'view_issue' issue.issue_id %}" class="btn btn-primary">
+                                                    <i class="fa fa-eye"></i>
+                                                </a>
+                                                <!-- Add a delete button with a Font Awesome trash icon -->
+                                                <a href="{% url 'delete_issue' issue.issue_id %}" class="btn btn-primary">
+                                                    <i class="fa fa-trash"></i>
+                                                </a>
                                             </td>
                                         </tr>
                                     {% endfor %}

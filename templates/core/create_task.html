@@ -2,13 +2,13 @@
 
 {% block content %}
 <div class="container">
-        {% if projects.exists %}
+    {% if projects.exists %}
         <h2>Create Task</h2>
         <form method="post" action="{% url 'create_task' %}" class="needs-validation" novalidate>
             {% csrf_token %}
             <div class="mb-3">
                 <label for="project" class="form-label">Project:</label>
-                <select name="project" class="form-control" required>
+                <select name="project" id="project" class="form-control" required>
                     <option value="" selected disabled>Select a project</option>
                     {% for project in projects %}
                         <option value="{{ project.project_id }}">{{ project.project_name }}</option>
@@ -28,19 +28,42 @@
 
             <div class="mb-3">
                 <label for="assigned_to" class="form-label">Assigned To:</label>
-                <select name="assigned_to" class="form-control" required>
+                <select name="assigned_to" id="assigned_to" class="form-control" required>
                     <option value="" selected disabled>Select an option</option>
-                    {% for user in users %}
-                        <option value="{{ user.id }}">{{ user.username }}</option>
-                    {% endfor %}
+                    <!-- Options will be populated dynamically using JavaScript -->
                 </select>
             </div>
 
             <button type="submit" class="btn btn-primary">Create Task</button>
         </form>
+
+        <script>
+            document.getElementById('project').addEventListener('change', function () {
+                console.log("Heyyyyyyyy")
+                var projectId = this.value;
+                var assignedToDropdown = document.getElementById('assigned_to');
+                assignedToDropdown.innerHTML = '<option value="" selected disabled>Select an option</option>';
+
+                // Make AJAX request
+                if (projectId) {
+                    fetch(`/select_users/?project_id=${projectId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Populate options based on the response
+                            data.forEach(user => {
+                                var option = document.createElement('option');
+                                option.value = user.id;
+                                option.textContent = user.username;
+                                assignedToDropdown.appendChild(option);
+                            });
+                        })
+                        .catch(error => console.error('Error:', error));
+                }
+            });
+        </script>
     {% else %}
         <h2>You are not a part of any project</h2>
         <p>You cannot create a task as you are not associated with any project.</p>
     {% endif %}
-    </div>
+</div>
 {% endblock %}

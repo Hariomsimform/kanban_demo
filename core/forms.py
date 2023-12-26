@@ -2,6 +2,7 @@
 from django import forms
 from .models import UserDetail, UserProject
 
+
 class UserProfileForm(forms.ModelForm):
     class Meta:
         model = UserDetail

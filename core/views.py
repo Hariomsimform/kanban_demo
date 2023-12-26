@@ -1,50 +1,17 @@
-from django.contrib.auth import authenticate, login as auth_login
-from django.http import HttpResponse
-from core.models import Task
+from django.contrib.auth import authenticate, login as auth_login, logout
+from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Task, TaskStatus, UserProject, Issue, Project, IssueStatus, UserDetail
+from .models import Task, TaskStatus, UserProject, Issue, Project, UserDetail
 from django.contrib.auth.models import User
 from .forms import UserProfileForm, UserProjectForm
-from django.views.generic import TemplateView
 from django.contrib import messages
-
-class Home(TemplateView):
-    template_name = "core/logintest.html"
-
-@login_required(login_url="/login/")
-def view_task(request, task_id):
-    task = get_object_or_404(Task, pk=task_id)
-    task = Task.objects.get(pk=task_id)
-    project = task.project
-    users = User.objects.filter(userproject__project=project)
-    status = TaskStatus.objects.all()
-    if request.method == 'POST':
-        task.task_name = request.POST.get('task_name')
-        task.task_description = request.POST.get('task_description')
-        task.assigned_to = User.objects.get(id=int(request.POST.get('assigned_to')))
-        task.status = TaskStatus.objects.get(status_id=int(request.POST.get('status')))
-        task.save()
-        return redirect('/')
-
-    return render(request, 'core/task_detail.html', {'task': task, 'users': users, 'task_statuses': status})
-
-@login_required(login_url="/login/")
-def view_issue(request, issue_id):
-    issue = Issue.objects.get(pk=issue_id)
-    project = issue.project
-    users = User.objects.filter(userproject__project=project)
-    status = TaskStatus.objects.all()
-    if request.method == 'POST':
-        issue.task_name = request.POST.get('task_name')
-        issue.task_description = request.POST.get('task_description')
-        issue.assigned_to = User.objects.get(id=int(request.POST.get('assigned_to')))
-        issue.status = IssueStatus.objects.get(status_id=int(request.POST.get('status')))
-        issue.save()
-        return redirect('/')
-
-    return render(request, 'core/task_detail.html', {'task': issue, 'users': users, 'task_statuses': status})
+from .utils import (update_task,
+                    update_issue, get_user_home_data,
+                    create_task_helper,
+                    create_issue_helper
+                    )
+from django.http import HttpResponseForbidden
 
 
 def login(request):
@@ -55,13 +22,27 @@ def login(request):
         if user is not None:
             auth_login(request, user)
             return redirect("/")
-
         else:
-            return render(request, 'core/login.html', {'error_message': 'Invalid credentials'})
+            return render(request,
+                          'core/login.html',
+                          {'error_message': 'Invalid credentials'})
 
     return render(request, template_name="core/login.html")
 
 
+@login_required(login_url="/login/")
+def home(request):
+    user_details = UserDetail.objects.filter(user=request.user)
+    if not user_details:
+        return redirect("/complete-profile/")
+
+    context = get_user_home_data(request.user)
+    context['user_details'] = user_details
+
+    return render(request, template_name="core/home.html", context=context)
+
+
+@login_required(login_url="/login/")
 def complete_profile(request):
     if request.method == 'POST':
         form = UserProfileForm(request.POST)
@@ -70,46 +51,73 @@ def complete_profile(request):
             user_profile.user = request.user
             user_profile.save()
             messages.success(request, 'Profile completed successfully.')
-            return redirect('/')  # Redirect to the home page or another appropriate view
+            return redirect('/')
     else:
         form = UserProfileForm()
 
     return render(request, 'core/complete_profile.html', {'form': form})
 
+
 @login_required(login_url="/login/")
-def home(request):
-    recent_projects = Project.objects.filter(userproject__user=request.user).order_by('-created_at')[:3]
-    task_counts = (
-        Task.objects
-        .filter(assigned_to=request.user)
-        .values('status__status_name', 'status__status_id')
-        .annotate(count=Count('status'))
-    )
-    tasks = (
-        Task.objects
-        .filter(assigned_to=request.user)
-        .values('task_name', 'project__project_name', 'task_id')
+def view_task(request, task_id):
+    task = get_object_or_404(Task, pk=task_id)
+    users = User.objects.filter(userproject__project=task.project)
+    status = TaskStatus.objects.all()
+    if request.user != task.task_owner and request.user != task.assigned_to:
+        return HttpResponseForbidden("You don't have permission to view this task.")
+
+    if request.method == 'POST':
+        update_task(request, task)
+        return redirect('/')
+
+    return render(
+        request,
+        'core/task_detail.html',
+        {'task': task, 'users': users, 'task_statuses': status})
+
+
+@login_required(login_url="/login/")
+def delete_task(request, task_id):
+    task = get_object_or_404(Task, pk=task_id)
+    if request.user != task.task_owner:
+        return HttpResponseForbidden("You don't have permission to delete this task.")
+    task.delete()
+    return redirect('/')
+
+
+@login_required(login_url="/login/")
+def view_issue(request, issue_id):
+    issue = get_object_or_404(Issue, pk=issue_id)
+    project = issue.project
+    users = User.objects.filter(userproject__project=project)
+    status = TaskStatus.objects.all()
+    if request.user != issue.issue_owner and request.user != issue.assigned_to:
+        return HttpResponseForbidden("You don't have permission to view this issue.")
+    if request.method == 'POST':
+        update_issue(request, issue)
+        return redirect('/')
+
+    return render(
+        request,
+        'core/task_detail.html',
+        {
+            'task': issue,
+            'users': users,
+            'task_statuses': status
+        }
     )
 
-    issues = (
-        Issue.objects
-        .filter(assigned_to=request.user)
-        .values('issue_name', 'project__project_name', 'issue_id')
-    )
-    user_details = UserDetail.objects.filter(user=request.user)
-    if not user_details:
-        return redirect("/complete-profile/")
-    context = {
-        'task_counts': task_counts,
-        'tasks': tasks,
-        'issues': issues,
-        'recent_projects': recent_projects,
-        'user_details': user_details,
-    }
-    breakpoint()
 
-    return render(request, template_name="core/home.html", context=context)
+@login_required(login_url="/login/")
+def delete_issue(request, issue_id):
+    issue = get_object_or_404(Issue, pk=issue_id)
+    if request.user != issue.issue_owner:
+        return HttpResponseForbidden("You don't have permission to delete this issue.")
+    issue.delete()
+    return redirect('/')
 
+
+@login_required(login_url="/login/")
 def user_projects(request):
     user = request.user
     user_projects = UserProject.objects.filter(user=user).select_related('project')
@@ -123,6 +131,8 @@ def user_projects(request):
 
     return render(request, 'core/user_projects.html', {'projects': projects})
 
+
+@login_required(login_url="/login/")
 def get_task(request, status_name, status_id):
     tasks = Task.objects.filter(status_id=status_id).select_related('project')
     context = {'tasks': tasks}
@@ -131,13 +141,8 @@ def get_task(request, status_name, status_id):
 
 @login_required(login_url="/login/")
 def project_tasks(request, project_id):
-    # Get the project
     project = Project.objects.get(pk=project_id)
-
-    # Get all task statuses
     task_statuses = TaskStatus.objects.all()
-
-    # Fetch tasks for each status for the given project
     tasks_by_status = {}
     for status in task_statuses:
         tasks_by_status[status.status_name] = Task.objects.filter(
@@ -153,6 +158,7 @@ def project_tasks(request, project_id):
     return render(request, template_name="core/project_tasks.html", context=context)
 
 
+@login_required(login_url="/login/")
 def all_tasks(request):
     tasks = (
         Task.objects
@@ -161,53 +167,37 @@ def all_tasks(request):
     )
     context = {
 
-        "tasks":tasks
-        }
+        "tasks": tasks
+    }
     return render(request, template_name="core/tasks.html", context=context)
 
+
+@login_required(login_url="/login/")
 def all_issues(request):
-    issues = ( # need to change query
+    issues = (  # need to change query
         Issue.objects
         .filter(assigned_to=request.user)
         .values('issue_name', 'project__project_name', 'issue_id')
     )
     context = {
-        "issues":issues
+        "issues": issues
     }
     return render(request, template_name="core/issues.html", context=context)
 
+
+@login_required(login_url="/login/")
 def create_project(request):
-    if request.method=="POST":
+    if request.method == "POST":
         return HttpResponse("Submitted form")
     return render(request, template_name="core/create_project.html")
 
 
-def create_issue(request):
-    if request.method=="POST":
-        return HttpResponse("Submitted form")
-    return render(request, template_name="core/create_issue.html")
-
-
+@login_required(login_url="/login/")
 def create_task(request):
     if request.method == "POST":
-        project = Project.objects.get(project_id=int(request.POST.get('project')))
-        task_name = request.POST.get('task_name')
-        task_description = request.POST.get('task_description')
-        assigned_to = request.POST.get('assigned_to')
-        assigned_user = User.objects.get(id=int(assigned_to))
-        status = TaskStatus.objects.get(status_id=1)
-        task_owner = request.user
-
-        task = Task.objects.create(
-            project=project,
-            task_name=task_name,
-            task_description=task_description,
-            assigned_to=assigned_user,
-            status=status,
-            task_owner=task_owner
-        )
-        task.save()
+        create_task_helper(request)
         return redirect('/')
+
     projects = Project.objects.filter(userproject__user=request.user)
     users = User.objects.all()
 
@@ -215,32 +205,25 @@ def create_task(request):
         'projects': projects,
         'users': users,
     }
-
     return render(request, template_name="core/create_task.html", context=context)
 
-def create_issue(request):
-    if request.method == "POST":
-        project = Project.objects.get(project_id=int(request.POST.get('project')))
-        issue_name = request.POST.get('issue_name')
-        issue_description = request.POST.get('issue_description')
-        assigned_to = request.POST.get('assigned_to')
-        assigned_user = User.objects.get(id=int(assigned_to))
-        status = IssueStatus.objects.get(status_id=1)
-        issue_owner = request.user
 
-        issue = Issue.objects.create(
-            project=project,
-            issue_name=issue_name,
-            task_description=issue_description,
-            assigned_to=assigned_user,
-            status=status,
-            issue_owner=issue_owner
-        )
-        issue.save()
-        return redirect('/')
-    
+def select_users(request):
+    if request.method == 'GET' and 'project_id' in request.GET:
+        project_id = request.GET['project_id']
+        users = User.objects.filter(userproject__project_id=project_id)
+        user_data = [{'id': user.id, 'username': user.username} for user in users]
+        return JsonResponse(user_data, safe=False)
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+@login_required(login_url="/login/")
+def create_issue(request):
     projects = Project.objects.all()
     users = User.objects.all()
+
+    if create_issue_helper(request):
+        return redirect('/')
 
     context = {
         'projects': projects,
@@ -250,6 +233,7 @@ def create_issue(request):
     return render(request, template_name="core/create_issue.html", context=context)
 
 
+@login_required(login_url="/login/")
 def add_developer(request):
     if request.method == 'POST':
         form = UserProjectForm(request.POST)
@@ -261,3 +245,9 @@ def add_developer(request):
         form = UserProjectForm()
 
     return render(request, 'core/userproject.html', {'form': form})
+
+
+@login_required(login_url="/login/")
+def logout_user(request):
+    logout(request)
+    return redirect('/login/')
